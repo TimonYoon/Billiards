@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class InputController : MonoBehaviour
 {
-    [SerializeField] private GameObject whiteBall;
+    [SerializeField] private Reflect2D whiteBall;
     [SerializeField] private LineRenderer lineRenderer;
     private Vector3 startPos;
     private int reflectCount = 3;
@@ -22,16 +22,21 @@ public class InputController : MonoBehaviour
     {
         while (true)
         {
+            var endPos = Input.mousePosition;
+            var dir = startPos - endPos;
             if (Input.GetMouseButtonUp(0))
             {
+                var power = dir.magnitude * 0.01f;
+                whiteBall.SetDir(dir,10,power);
+                Debug.Log($"dir {dir} go!");
                 break;
             }
             
-            var endPos = Input.mousePosition;
-            var dir = startPos - endPos;
-            var originPos = whiteBall.transform.position;
-            reflectCount = 0;
-            RayCastReflect(originPos, dir);
+           
+            
+            // var originPos = whiteBall.transform.position;
+            // reflectCount = 0;
+            // RayCastReflect(originPos, dir);
             /*
             var rayHits = Physics2D.RaycastAll(originPos,dir);
             foreach (var rayHit in rayHits)
