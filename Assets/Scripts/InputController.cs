@@ -1,19 +1,25 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class InputController : MonoBehaviour
 {
-    [SerializeField] private Reflect2D whiteBall;
-    [SerializeField] private LineRenderer lineRenderer;
-    private Vector3 startPos;
-    private int reflectCount = 3;
+    [SerializeField] private Ball whiteBall;
+    private LineRenderer lineRenderer;
+    private Vector3 inputStartPos;
+    private int maxCount = 3;
+
+    private void Awake()
+    {
+        lineRenderer = GetComponent<LineRenderer>();
+    }
+
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
-        {
-            
-            startPos = Input.mousePosition;
+        {            
+            inputStartPos = Input.mousePosition;
             StartCoroutine(CoWaitMouseUp());
         }
     }
@@ -22,70 +28,59 @@ public class InputController : MonoBehaviour
     {
         while (true)
         {
-            var endPos = Input.mousePosition;
-            var dir = startPos - endPos;
+            var inputEndPos = Input.mousePosition;
+            var dir = inputStartPos - inputEndPos;
             if (Input.GetMouseButtonUp(0))
             {
                 var power = dir.magnitude * 0.01f;
-                whiteBall.SetDir(dir,10,power);
-                Debug.Log($"dir {dir} go!");
+                whiteBall.SetDir(dir, power);
                 break;
-            }
+            }           
             
-           
-            
-            // var originPos = whiteBall.transform.position;
-            // reflectCount = 0;
-            // RayCastReflect(originPos, dir);
-            /*
-            var rayHits = Physics2D.RaycastAll(originPos,dir);
-            foreach (var rayHit in rayHits)
-            {
-                if (rayHit.collider == null)
-                {
-                    continue;
-                }
-
-                // 충돌지점
-                var hitPos = rayHit.point;
-
-                var incidence = hitPos - (Vector2)originPos;
-
-                var hitNormalized = rayHit.point.normalized;
-                var reflectVector = Vector3.Reflect(incidence, rayHit.normal);
-                Debug.DrawRay(rayHit.point,reflectVector,Color.yellow,10);
-            }
-            Debug.DrawRay(originPos,dir);
-            */
+            var startPos = whiteBall.transform.position;
+            ShootRay(startPos, dir / dir.magnitude,1);
             yield return null;
         }
     }
 
-    void RayCastReflect(Vector3 originPos, Vector3 dir)
+   
+    void ShootRay(Vector2 startPos, Vector2 dir,  int count, RaycastHit2D startHit = default)
     {
-        if (reflectCount >= 3)
+        RaycastHit2D[] hits = new RaycastHit2D[2];
+        if (0 < Physics2D.RaycastNonAlloc(startPos, dir, hits))
         {
-            return;
-        }
-
-        reflectCount++;
-        var results = Physics2D.RaycastAll(originPos, dir);
-        foreach (var rayHit in results)
-        {
-            if (rayHit.collider == null)
+            for (int i = 0; i < hits.Length; i++)
             {
-                continue;
+                RaycastHit2D hit = hits[i];
+                if (hit.transform == null)
+                {
+                    continue;
+                }
+
+                if (whiteBall.transform.GetInstanceID() == hit.transform.GetInstanceID())
+                {
+                    continue;
+                }
+                
+                if (startHit.transform != null)
+                {
+                    if (startHit.transform.GetInstanceID() == hit.transform.GetInstanceID())
+                    {
+                        continue;
+                    }
+                }
+                
+                float distance = Vector2.Distance(startPos, hit.point);
+                Debug.DrawRay(startPos, dir * distance, Color.red);
+
+                if (count <= maxCount)
+                {
+                    count++;
+                    Vector2 reflectVec = Vector2.Reflect(dir, hit.normal);
+                    ShootRay(hit.point, reflectVec, count, hit);
+                    break;
+                }
             }
-
-            // 충돌지점
-            var hitPos = rayHit.point;
-            var incidence = hitPos - (Vector2)originPos;
-            var hitNormalized = rayHit.point.normalized;
-            var reflectVector = Vector3.Reflect(incidence, rayHit.normal);
-            RayCastReflect(rayHit.point, reflectVector);
-            Debug.DrawRay(rayHit.point,reflectVector);
-
         }
-        Debug.DrawRay(originPos,dir);
     }
 }

@@ -4,49 +4,23 @@ using UnityEngine;
 
 public class Reflect2D : MonoBehaviour
 {
-    public float power = 0;
-    
-    //public float velocity = 0; // 속도
-    public Vector3 dir = Vector3.zero; // 방향
-    public RaycastHit2D target = default; // 충돌 예정인 타겟
-    public void SetDir(Vector2 _dir, float _velocity, float _power)
-    {
-        // 방향과 속도를 기입
-        // 해당 방향으로 이동
-        // 타겟과 근접했을 때 반사각 구함
-        // 반사되는 방향으로 이동
-        // 속도가 0이 될때까지 반복
-        
-        // 예외 이동중 다른 공과 충돌시
-        // 이동 방향으로 레이를 계속 체크
-        // 타겟이 변경시 거리 체크
-        // 타겟과 근접했다면 ?? 충돌 대상에게 반사각을 알려줌
-        dir = _dir / _dir.magnitude;
-        //velocity = _velocity;
-        power = _power;
-    }
+    [Range(85f, -85f)] public float zRot; // z회전 각도 
+    public int maxCount = 3; // 벽에 반사되는 횟수
+
     void Update()
     {
-        power -= Time.deltaTime;
-       
-        
-        if (power > 0f)
-        {
-            ShootRay(transform.position);
-            Collision();
-            var move = dir * Time.deltaTime * power;
-            transform.position += move;
-        }
-        
-        
-        
+        ZRotation();
+        ShootRay(transform.position, transform.up, 1);
     }
-
-    // 레이캐스트 발사
-    // startPos : 레이캐스트의 시작 지점
-    // dir : 레이캐스트 발사 방향
-    // count : 레이캐스트가 벽에 반사되는 횟수
-    void ShootRay(Vector2 startPos)
+    
+    /// <summary>
+    /// 레이캐스트 발사해서 충돌되는 타겟 체크
+    /// </summary>
+    /// <param name="startPos">레이케스트 시작 지점</param>
+    /// <param name="dir">레이캐스트 발사 뱡향</param>
+    /// <param name="count">레이캐스트가 벽에 반사된 횟수</param>
+    /// <param name="startHit">2D Raycast 경우 발사하는 본인이 hit되는 경우가 있어서 </param>
+    void ShootRay(Vector2 startPos, Vector2 dir,  int count, RaycastHit2D startHit = default)
     {
         RaycastHit2D[] hits = new RaycastHit2D[2];
         if (0 < Physics2D.RaycastNonAlloc(startPos, dir, hits))
@@ -58,38 +32,32 @@ public class Reflect2D : MonoBehaviour
                 {
                     continue;
                 }
-                if (transform.GetInstanceID() == hit.transform.GetInstanceID())
+                if (startHit.transform != null)
                 {
-                    continue;
+                    if (startHit.transform.GetInstanceID() == hit.transform.GetInstanceID())
+                    {
+                        continue;
+                    }
                 }
-
-                target = hit;
+                
                 float distance = Vector2.Distance(startPos, hit.point);
                 Debug.DrawRay(startPos, dir * distance, Color.red);
-                break;
+
+                if (count <= maxCount)
+                {
+                    count++;
+                    Debug.Log($"count {count} : {hit.collider.name} / {dir}" );
+                    Vector2 reflectVec = Vector2.Reflect(dir, hit.normal);
+                    ShootRay(hit.point, reflectVec, count, hit);
+                    break;
+                }
             }
         }
     }
 
-    private void Collision()
+    // 오브젝트의 회전 
+    void ZRotation()
     {
-        if (target == null)
-        {
-            return;
-        }
-        var startPos = transform.position;
-        var endPos = target.point;
-        if (Vector2.Distance(startPos,endPos) <= 0.5f)
-        {
-            Debug.Log("충돌");
-            Vector2 reflectVec = Vector2.Reflect(dir, target.normal);
-            SetDir(reflectVec, power, power);
-            var reflect = target.transform.GetComponent<Reflect2D>();
-            if (reflect != null)
-            {
-                var colDir = (Vector2)target.transform.position - endPos;
-                reflect.SetDir(colDir, power, power);
-            }
-        }
+        transform.eulerAngles = new Vector3(0, 0, zRot);
     }
 }
