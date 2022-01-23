@@ -35,6 +35,9 @@ public class Ball : MonoBehaviour
     //     Move();
     // }
 
+    void LoginTest()
+    {
+    }
     private Vector3 preBallPosition; // 이전 Frame의 공의 위치를 저장
     private void FixedUpdate()
     {
